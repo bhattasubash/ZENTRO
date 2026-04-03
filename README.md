@@ -1,144 +1,96 @@
-You are a senior software engineer and product-focused founder.
+# Zentro
 
-Your task is to write a **high-end, professional GitHub README** for my project **Zentro**.
+Go from idea to a shipped product in 14 days.
 
-This README should feel like it belongs to a **real SaaS startup**, not a student project.
-
----
-
-## OBJECTIVE
-
-Create a README that:
-
-* Builds trust instantly
-* Explains the product clearly
-* Feels minimal, sharp, and premium
-* Appeals to developers, founders, and recruiters
-* Positions me as a serious builder
+Zentro is a structured execution system for builders who want to move from concept to MVP without getting stuck in planning.
 
 ---
 
-## WRITING STYLE
+## Problem
 
-* No emojis
-* No fluff
-* No generic AI tone
-* Clear, confident, product-focused language
-* Short paragraphs
-* Strong section hierarchy
+Most people don’t fail at building — they fail at starting.
+
+Ideas stall because there’s no clear path from 0 to 1.  
+Scope is unclear, priorities are undefined, and execution becomes overwhelming.
 
 ---
 
-## PRODUCT CONTEXT
+## Solution
 
-Zentro is a platform that helps people go from idea to real product in 14 days.
+Zentro removes that ambiguity.
 
-It provides:
-
-* Structured execution steps
-* Idea breakdown and validation
-* MVP planning
-* Guided building workflow
-
-Core idea:
-
-> Most people don’t fail at building. They fail at starting.
+It breaks ideas into clear, actionable steps and guides you through a focused 14-day execution cycle — from concept to deployed product.
 
 ---
 
-## STRUCTURE TO FOLLOW
+## Key Features
 
-Use this exact structure:
-
-1. Title + One-line positioning
-2. Short intro (2–3 lines max)
-3. Problem
-4. Solution
-5. Key Features
-6. Preview (VERY IMPORTANT — include images)
-7. How it Works
-8. Tech Stack (keep minimal)
-9. Vision / Why I built this
-10. Future Scope
-11. Closing line (strong, memorable)
+- **Roadmap Generation** — Turn ideas into structured execution plans  
+- **MVP Scoping** — Focus only on what matters for shipping fast  
+- **Execution Dashboard** — Track daily progress and milestones  
+- **Guided Workflow** — Step-by-step path from idea → build → launch  
 
 ---
-
-## PREVIEW SECTION (CRITICAL)
-
-Use the images I provide.
-
-Place them in this exact order:
-
-### 1. Landing / Hero Section
-
-(showing main value proposition)
-
-### 2. Idea Input + Roadmap Generation
-
-(showing "Describe your idea")
-
-### 3. Dashboard / Plans View
-
-(showing execution system)
-
-### 4. Settings / System UI
-
-(showing product depth & polish)
-
----
-
-## IMAGE FORMAT
-
-Use this exact markdown structure:
 
 ## Preview
 
-### Landing Experience
-
-A clear starting point that communicates the product’s value instantly.
+### Landing Experience  
+A clear starting point that communicates the product’s value instantly.  
 ![Landing](./assets/zentro-landing.png)
 
-### Idea to Plan
-
-Turn raw ideas into structured execution steps.
+### Idea to Plan  
+Turn raw ideas into structured execution steps.  
 ![Idea Input](./assets/zentro-idea.png)
 
-### Execution Dashboard
-
-Track and manage your product-building journey.
+### Execution Dashboard  
+Track and manage your product-building journey.  
 ![Dashboard](./assets/zentro-dashboard.png)
 
-### System & Preferences
-
-Built with depth, control, and scalability in mind.
+### System & Preferences  
+Built with depth, control, and scalability in mind.  
 ![Settings](./assets/zentro-settings.png)
 
 ---
 
-## IMPORTANT RULES
+## How it Works
 
-* Do NOT over-explain features
-* Do NOT make it too long
-* Focus on clarity > cleverness
-* Make every section feel intentional
-* Avoid buzzwords unless meaningful
-* Make it feel like a real product people would pay for
+1. **Define** — Describe your idea and target users  
+2. **Generate** — Get a structured 14-day roadmap  
+3. **Execute** — Follow focused daily steps  
+4. **Ship** — Launch and start validating  
 
 ---
 
-## OUTPUT FORMAT
+## Tech Stack
 
-Return ONLY the final README in clean markdown.
-
----
-
-## GOAL
-
-When someone opens this repo, they should think:
-
-“This is not a beginner. This is someone building real products.”
+- Next.js 15, React 19, TypeScript  
+- Tailwind CSS 4  
+- Cloudflare Workers (Serverless)  
 
 ---
 
-Now generate the README.
+## Vision
+
+I built Zentro for builders who are tired of overthinking and want to start shipping.
+
+The goal is simple:  
+turn ideas into real products — faster, with clarity.
+
+---
+
+## Future Scope
+
+- Team collaboration for small founding teams  
+- One-click deployments for common stacks  
+- Real-time technical guidance during execution  
+
+---
+
+## Philosophy
+
+Execution creates momentum.  
+Momentum builds products.
+
+---
+
+Stop overthinking. Start shipping.
