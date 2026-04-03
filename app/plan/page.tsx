@@ -1,33 +1,73 @@
 "use client";
 
-import { useSearchParams, useRouter } from 'next/navigation';
-import { useEffect, useState, Suspense } from 'react';
-import { getRoadmap, type SavedProject, generateRoadmap } from '@/lib/api';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-function PlanContent() {
-  const searchParams = useSearchParams();
+interface DailyChecklistItem {
+  day: number;
+  task: string;
+}
+
+interface PlanData {
+  idea_summary?: string;
+  target_user?: string[];
+  problem?: string[];
+  solution?: string;
+  unique_angle?: string;
+  market_insight?: string[];
+  features?: string[];
+  monetization?: string[];
+  distribution?: string[];
+  risks?: string[];
+  tech_stack?: string[];
+  execution_plan?: {
+    goal?: string;
+    daily_checklist?: DailyChecklistItem[];
+  };
+}
+
+export default function Plan() {
   const router = useRouter();
-  const projectId = searchParams.get('projectId');
-  const [project, setProject] = useState<SavedProject | null>(null);
+  const [data, setData] = useState<PlanData | null>(null);
+  const [idea, setIdea] = useState('');
   const [loaded, setLoaded] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
 
   useEffect(() => {
-    if (projectId) {
-      const saved = getRoadmap(projectId);
-      setProject(saved);
+    const raw = localStorage.getItem("zentro_plan");
+    const savedIdea = localStorage.getItem("zentro_plan_idea") || "Your idea";
+
+    if (!raw) {
+      router.push("/input");
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(raw);
+      setData(parsed);
+      setIdea(savedIdea);
+    } catch {
+      router.push("/input");
+      return;
     }
     setLoaded(true);
-  }, [projectId]);
+  }, [router]);
 
   const handleRegenerate = async () => {
-    if (!project) return;
     setRegenerating(true);
     try {
-      const result = await generateRoadmap(project.idea);
-      router.push(`/plan?projectId=${result.projectId}`);
-      router.refresh();
+      const res = await fetch("https://zentroapi.iamsubash2064.workers.dev/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idea }),
+      });
+
+      if (!res.ok) throw new Error("Failed");
+
+      const result = await res.json();
+      localStorage.setItem("zentro_plan", JSON.stringify(result.data));
+      setData(result.data);
     } catch {
       // silently fail, user can retry
     } finally {
@@ -35,7 +75,7 @@ function PlanContent() {
     }
   };
 
-  if (!loaded) {
+  if (!loaded || !data) {
     return (
       <main className="max-w-7xl mx-auto px-8 py-20 min-h-[calc(100vh-144px)] flex items-center justify-center">
         <span className="material-symbols-outlined text-primary-container text-4xl animate-spin">progress_activity</span>
@@ -43,20 +83,7 @@ function PlanContent() {
     );
   }
 
-  if (!project) {
-    return (
-      <main className="max-w-7xl mx-auto px-8 py-20 min-h-[calc(100vh-144px)] flex flex-col items-center justify-center gap-8">
-        <span className="material-symbols-outlined text-outline text-6xl">assignment_late</span>
-        <h1 className="text-3xl font-black tracking-tighter text-white">No plan found</h1>
-        <p className="text-on-surface-variant">This plan doesn&apos;t exist or has been removed.</p>
-        <Link href="/input" className="bg-primary-container text-white px-8 py-4 rounded-lg font-bold text-sm hover:shadow-[0_0_20px_rgba(0,51,255,0.4)] active:scale-95 transition-all">
-          Create a new plan
-        </Link>
-      </main>
-    );
-  }
-
-  const { data } = project;
+  const checklist = data.execution_plan?.daily_checklist || [];
 
   return (
     <main className="max-w-7xl mx-auto px-8 py-20 min-h-[calc(100vh-144px)]">
@@ -66,7 +93,7 @@ function PlanContent() {
           <span className="text-[0.6875rem] uppercase tracking-widest font-bold text-primary">INITIALIZATION COMPLETE</span>
         </div>
         <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-white max-w-4xl">
-          Your idea: <span className="text-[#0033FF] drop-shadow-[0_0_10px_rgba(0,51,255,0.5)] italic">{project.idea}</span>
+          Your idea: <span className="text-[#0033FF] drop-shadow-[0_0_10px_rgba(0,51,255,0.5)] italic">{data.idea_summary || idea}</span>
         </h1>
       </div>
 
@@ -76,7 +103,7 @@ function PlanContent() {
         <div className="md:col-span-4 bg-surface-container-low p-8 flex flex-col justify-between border-t border-white/5">
           <div>
             <span className="text-[0.6875rem] uppercase tracking-widest text-on-surface-variant block mb-6">01 / TARGET USERS</span>
-            <h3 className="text-2xl font-bold tracking-tight text-white leading-tight">{data.target_user}</h3>
+            <h3 className="text-2xl font-bold tracking-tight text-white leading-tight">{data.target_user?.join(", ") || 'Target users'}</h3>
           </div>
           <div className="mt-8 flex justify-end">
             <span className="material-symbols-outlined text-outline/30 text-4xl">groups</span>
@@ -87,7 +114,7 @@ function PlanContent() {
         <div className="md:col-span-4 bg-surface-container p-8 border-t border-white/5">
           <span className="text-[0.6875rem] uppercase tracking-widest text-on-surface-variant block mb-6">02 / CORE FEATURES</span>
           <ul className="space-y-6">
-            {data.features.map((feature, i) => (
+            {data.features?.map((feature, i) => (
               <li key={i} className="flex items-start gap-4">
                 <span className="w-1.5 h-1.5 mt-2 bg-primary-container"></span>
                 <div>
@@ -103,43 +130,132 @@ function PlanContent() {
           <div className="absolute inset-0 bg-primary-container/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
           <div className="relative z-10">
             <span className="material-symbols-outlined text-primary-container text-5xl mb-4">bolt</span>
-            <p className="text-2xl font-black text-white leading-tight">This can be built in <span className="text-primary-container">{data.roadmap.length > 0 ? data.roadmap[data.roadmap.length - 1].day.split('–').pop()?.trim() ?? '14' : '14'} days</span></p>
+            <p className="text-2xl font-black text-white leading-tight">This can be built in <span className="text-primary-container">{checklist.length > 0 ? checklist[checklist.length - 1].day : 14} days</span></p>
           </div>
         </div>
 
-        {/* MVP Roadmap (Main Focus) */}
+        {/* Problem */}
+        {data.problem && data.problem.length > 0 && (
+          <div className="md:col-span-6 bg-surface-container-low p-8 border-t border-white/5">
+            <span className="text-[0.6875rem] uppercase tracking-widest text-on-surface-variant block mb-6">PROBLEM</span>
+            <ul className="space-y-4">
+              {data.problem.map((item, i) => (
+                <li key={i} className="flex items-start gap-4">
+                  <span className="w-1.5 h-1.5 mt-2 bg-error"></span>
+                  <span className="text-on-surface-variant text-sm leading-relaxed">{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Solution & Unique Angle */}
+        <div className="md:col-span-6 bg-surface-container p-8 border-t border-white/5">
+          {data.solution && (
+            <div className="mb-8">
+              <span className="text-[0.6875rem] uppercase tracking-widest text-on-surface-variant block mb-4">SOLUTION</span>
+              <p className="text-white font-medium leading-relaxed">{data.solution}</p>
+            </div>
+          )}
+          {data.unique_angle && (
+            <div>
+              <span className="text-[0.6875rem] uppercase tracking-widest text-primary-container block mb-4">UNIQUE ANGLE</span>
+              <p className="text-white font-medium leading-relaxed">{data.unique_angle}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Market Insight */}
+        {data.market_insight && data.market_insight.length > 0 && (
+          <div className="md:col-span-4 bg-surface-container-low p-8 border-t border-white/5">
+            <span className="text-[0.6875rem] uppercase tracking-widest text-on-surface-variant block mb-6">MARKET INSIGHT</span>
+            <ul className="space-y-4">
+              {data.market_insight.map((item, i) => (
+                <li key={i} className="flex items-start gap-4">
+                  <span className="w-1.5 h-1.5 mt-2 bg-primary-container"></span>
+                  <span className="text-on-surface-variant text-sm leading-relaxed">{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Monetization */}
+        {data.monetization && data.monetization.length > 0 && (
+          <div className="md:col-span-4 bg-surface-container p-8 border-t border-white/5">
+            <span className="text-[0.6875rem] uppercase tracking-widest text-on-surface-variant block mb-6">MONETIZATION</span>
+            <ul className="space-y-4">
+              {data.monetization.map((item, i) => (
+                <li key={i} className="flex items-start gap-4">
+                  <span className="w-1.5 h-1.5 mt-2 bg-primary-container"></span>
+                  <span className="text-on-surface-variant text-sm leading-relaxed">{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Tech Stack */}
+        {data.tech_stack && data.tech_stack.length > 0 && (
+          <div className="md:col-span-4 bg-surface-container-low p-8 border-t border-white/5">
+            <span className="text-[0.6875rem] uppercase tracking-widest text-on-surface-variant block mb-6">TECH STACK</span>
+            <ul className="space-y-4">
+              {data.tech_stack.map((item, i) => (
+                <li key={i} className="flex items-start gap-4">
+                  <span className="w-1.5 h-1.5 mt-2 bg-primary-container"></span>
+                  <span className="text-on-surface-variant text-sm leading-relaxed">{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* MVP Roadmap — execution_plan.daily_checklist */}
         <div className="md:col-span-12 bg-surface-container-lowest p-10 border-t border-white/5 mt-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between mb-12 gap-6">
             <div>
-              <span className="text-[0.6875rem] uppercase tracking-widest text-on-surface-variant block mb-2">03 / MVP ROADMAP</span>
-              <h2 className="text-3xl font-black tracking-tighter text-white">The 14-Day Sprint</h2>
+              <span className="text-[0.6875rem] uppercase tracking-widest text-on-surface-variant block mb-2">EXECUTION PLAN</span>
+              <h2 className="text-3xl font-black tracking-tighter text-white">{data.execution_plan?.goal || 'The 14-Day Sprint'}</h2>
             </div>
             <div className="h-px flex-grow mx-8 bg-outline-variant/20 hidden md:block"></div>
             <div className="flex items-center gap-4">
               <span className="text-[0.6875rem] uppercase tracking-widest text-primary font-bold">ACCELERATED PATH</span>
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-0 border border-outline-variant/10">
-            {data.roadmap.map((step, i) => (
-              <div key={i} className={`p-8 ${i < data.roadmap.length - 1 ? 'border-b md:border-b-0 md:border-r' : ''} border-outline-variant/10 hover:bg-surface-container-high transition-colors`}>
-                <span className="text-4xl font-black text-outline-variant/30 block mb-4">{String(i + 1).padStart(2, '0')}</span>
-                <h4 className="text-primary font-bold tracking-widest text-xs uppercase mb-2">{step.day}</h4>
-                <h3 className="text-xl font-bold text-white mb-4">{step.title}</h3>
-                <p className="text-on-surface-variant text-sm leading-relaxed">{step.task}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0 border border-outline-variant/10">
+            {checklist.map((item, i) => (
+              <div key={item.day} className={`p-6 ${i < checklist.length - 1 ? 'border-b md:border-r' : ''} border-outline-variant/10 hover:bg-surface-container-high transition-colors`}>
+                <h4 className="text-primary font-bold tracking-widest text-xs uppercase mb-2">Day {item.day}</h4>
+                <p className="text-on-surface text-sm leading-relaxed">{item.task}</p>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Checklist */}
-      {data.checklist && data.checklist.length > 0 && (
+      {/* Risks */}
+      {data.risks && data.risks.length > 0 && (
         <div className="mb-24">
-          <h2 className="text-2xl font-black tracking-tighter text-white mb-8">Launch Checklist</h2>
+          <h2 className="text-2xl font-black tracking-tighter text-white mb-8">Risks & Challenges</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {data.checklist.map((item, i) => (
+            {data.risks.map((item, i) => (
               <div key={i} className="flex items-center gap-4 p-4 bg-surface-container-low border border-outline-variant/10 rounded">
-                <span className="material-symbols-outlined text-primary-container text-sm">check_box_outline_blank</span>
+                <span className="material-symbols-outlined text-error text-sm">warning</span>
+                <span className="text-on-surface text-sm">{item}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Distribution */}
+      {data.distribution && data.distribution.length > 0 && (
+        <div className="mb-24">
+          <h2 className="text-2xl font-black tracking-tighter text-white mb-8">Distribution Channels</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {data.distribution.map((item, i) => (
+              <div key={i} className="flex items-center gap-4 p-4 bg-surface-container-low border border-outline-variant/10 rounded">
+                <span className="material-symbols-outlined text-primary-container text-sm">campaign</span>
                 <span className="text-on-surface text-sm">{item}</span>
               </div>
             ))}
@@ -167,17 +283,5 @@ function PlanContent() {
         </div>
       </div>
     </main>
-  );
-}
-
-export default function Plan() {
-  return (
-    <Suspense fallback={
-      <main className="max-w-7xl mx-auto px-8 py-20 min-h-[calc(100vh-144px)] flex items-center justify-center">
-        <span className="material-symbols-outlined text-primary-container text-4xl animate-spin">progress_activity</span>
-      </main>
-    }>
-      <PlanContent />
-    </Suspense>
   );
 }

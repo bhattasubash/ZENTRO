@@ -1,36 +1,144 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+You are a senior software engineer and product-focused founder.
 
-## Getting Started
+Your task is to write a **high-end, professional GitHub README** for my project **Zentro**.
 
-First, run the development server:
+This README should feel like it belongs to a **real SaaS startup**, not a student project.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## OBJECTIVE
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Create a README that:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+* Builds trust instantly
+* Explains the product clearly
+* Feels minimal, sharp, and premium
+* Appeals to developers, founders, and recruiters
+* Positions me as a serious builder
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## WRITING STYLE
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+* No emojis
+* No fluff
+* No generic AI tone
+* Clear, confident, product-focused language
+* Short paragraphs
+* Strong section hierarchy
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## PRODUCT CONTEXT
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Zentro is a platform that helps people go from idea to real product in 14 days.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+It provides:
+
+* Structured execution steps
+* Idea breakdown and validation
+* MVP planning
+* Guided building workflow
+
+Core idea:
+
+> Most people don’t fail at building. They fail at starting.
+
+---
+
+## STRUCTURE TO FOLLOW
+
+Use this exact structure:
+
+1. Title + One-line positioning
+2. Short intro (2–3 lines max)
+3. Problem
+4. Solution
+5. Key Features
+6. Preview (VERY IMPORTANT — include images)
+7. How it Works
+8. Tech Stack (keep minimal)
+9. Vision / Why I built this
+10. Future Scope
+11. Closing line (strong, memorable)
+
+---
+
+## PREVIEW SECTION (CRITICAL)
+
+Use the images I provide.
+
+Place them in this exact order:
+
+### 1. Landing / Hero Section
+
+(showing main value proposition)
+
+### 2. Idea Input + Roadmap Generation
+
+(showing "Describe your idea")
+
+### 3. Dashboard / Plans View
+
+(showing execution system)
+
+### 4. Settings / System UI
+
+(showing product depth & polish)
+
+---
+
+## IMAGE FORMAT
+
+Use this exact markdown structure:
+
+## Preview
+
+### Landing Experience
+
+A clear starting point that communicates the product’s value instantly.
+![Landing](./assets/zentro-landing.png)
+
+### Idea to Plan
+
+Turn raw ideas into structured execution steps.
+![Idea Input](./assets/zentro-idea.png)
+
+### Execution Dashboard
+
+Track and manage your product-building journey.
+![Dashboard](./assets/zentro-dashboard.png)
+
+### System & Preferences
+
+Built with depth, control, and scalability in mind.
+![Settings](./assets/zentro-settings.png)
+
+---
+
+## IMPORTANT RULES
+
+* Do NOT over-explain features
+* Do NOT make it too long
+* Focus on clarity > cleverness
+* Make every section feel intentional
+* Avoid buzzwords unless meaningful
+* Make it feel like a real product people would pay for
+
+---
+
+## OUTPUT FORMAT
+
+Return ONLY the final README in clean markdown.
+
+---
+
+## GOAL
+
+When someone opens this repo, they should think:
+
+“This is not a beginner. This is someone building real products.”
+
+---
+
+Now generate the README.

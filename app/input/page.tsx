@@ -2,19 +2,46 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useRoadmap } from '@/hooks/useRoadmap';
 
 export default function InputInterface() {
   const [idea, setIdea] = useState('');
   const [activeTag, setActiveTag] = useState<string | null>(null);
-  const { generate, loading, error } = useRoadmap();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   const handleGenerate = async () => {
     const fullIdea = activeTag ? `[${activeTag}] ${idea}` : idea;
-    const projectId = await generate(fullIdea);
-    if (projectId) {
-      router.push(`/plan?projectId=${projectId}`);
+    if (!fullIdea.trim()) {
+      setError("Please describe your idea first.");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch("https://zentroapi.iamsubash2064.workers.dev/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idea: fullIdea }),
+      });
+
+      const result = await res.json();
+      console.log("RAW API RESPONSE:", JSON.stringify(result, null, 2));
+
+      if (!res.ok || !result.success) {
+        throw new Error(result.error || result.message || `Server error: ${res.status}`);
+      }
+
+      localStorage.setItem("zentro_plan", JSON.stringify(result.data));
+      localStorage.setItem("zentro_plan_idea", fullIdea);
+
+      router.push("/plan");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
