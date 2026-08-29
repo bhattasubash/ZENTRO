@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { saveRoadmap } from '@/lib/api';
 
 export default function InputInterface() {
   const [idea, setIdea] = useState('');
@@ -34,10 +35,9 @@ export default function InputInterface() {
         throw new Error(result.error || result.message || `Server error: ${res.status}`);
       }
 
-      localStorage.setItem("zentro_plan", JSON.stringify(result.data));
-      localStorage.setItem("zentro_plan_idea", fullIdea);
+      const saved = await saveRoadmap(fullIdea, result.data);
 
-      router.push("/plan");
+      router.push(`/plan?projectId=${saved.projectId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {

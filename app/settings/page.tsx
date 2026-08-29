@@ -15,7 +15,7 @@ export default function Settings() {
             <span className="material-symbols-outlined">dashboard</span>
             <span className="text-sm font-medium">Dashboard</span>
           </Link>
-          <Link href="#" className="flex items-center gap-3 px-6 py-4 text-[#C4C5DA] hover:text-white transition-colors hover:bg-[#2A2A2A] active:scale-[0.98] duration-150">
+          <Link href="#profile" className="flex items-center gap-3 px-6 py-4 text-[#C4C5DA] hover:text-white transition-colors hover:bg-[#2A2A2A] active:scale-[0.98] duration-150">
             <span className="material-symbols-outlined">person</span>
             <span className="text-sm font-medium">Profile</span>
           </Link>
@@ -27,7 +27,7 @@ export default function Settings() {
             <span className="material-symbols-outlined">shield</span>
             <span className="text-sm font-medium">Security</span>
           </Link>
-          <Link href="#" className="flex items-center gap-3 px-6 py-4 text-[#C4C5DA] hover:text-white transition-colors hover:bg-[#2A2A2A] active:scale-[0.98] duration-150">
+          <Link href="#danger" className="flex items-center gap-3 px-6 py-4 text-[#C4C5DA] hover:text-white transition-colors hover:bg-[#2A2A2A] active:scale-[0.98] duration-150">
             <span className="material-symbols-outlined">warning</span>
             <span className="text-sm font-medium">Danger Zone</span>
           </Link>
