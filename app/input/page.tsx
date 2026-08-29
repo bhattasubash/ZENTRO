@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { saveRoadmap } from '@/lib/api';
+import { generateRoadmap } from '@/lib/api';
 
 export default function InputInterface() {
   const [idea, setIdea] = useState('');
@@ -22,22 +22,8 @@ export default function InputInterface() {
     setError(null);
 
     try {
-      const res = await fetch("https://zentroapi.iamsubash2064.workers.dev/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idea: fullIdea }),
-      });
-
-      const result = await res.json();
-      console.log("RAW API RESPONSE:", JSON.stringify(result, null, 2));
-
-      if (!res.ok || !result.success) {
-        throw new Error(result.error || result.message || `Server error: ${res.status}`);
-      }
-
-      const saved = await saveRoadmap(fullIdea, result.data);
-
-      router.push(`/plan?projectId=${saved.projectId}`);
+      const result = await generateRoadmap(fullIdea);
+      router.push(`/plan?projectId=${result.projectId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
@@ -58,136 +44,107 @@ export default function InputInterface() {
       {/* Main Content Area (Left) */}
       <section className="md:col-span-8 flex flex-col">
         <header className="mb-12">
-          <span className="text-[0.6875rem] font-medium uppercase tracking-[0.15em] text-primary-container mb-4 block">Initialization Phase</span>
-          <h1 className="text-5xl font-black tracking-tighter text-on-surface leading-none">Describe your idea</h1>
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-surface-container-high border-l-2 border-primary-container mb-6">
+            <span className="text-[0.6875rem] uppercase tracking-widest font-bold text-primary">INITIALIZE SEQUENCE</span>
+          </div>
+          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tighter text-white uppercase leading-none">
+            What are we <span className="text-primary-container drop-shadow-[0_0_15px_rgba(0,51,255,0.4)]">building?</span>
+          </h1>
+          <p className="mt-4 text-on-surface-variant text-lg font-light max-w-xl">
+            Type anything. Zentro turns messy thoughts into an actionable 14-day execution blueprint.
+          </p>
         </header>
 
-        {/* Terminal Input Interface */}
-        <div className="relative group">
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-primary-container to-on-primary-fixed-variant opacity-10 group-focus-within:opacity-25 transition-opacity duration-500 rounded-lg blur"></div>
-          <div className="relative bg-surface-container-lowest border-l-2 border-primary-container p-8 min-h-[400px] flex flex-col shadow-2xl">
-            {/* Terminal Header Decor */}
-            <div className="flex items-center gap-2 mb-6 opacity-30">
-              <div className="w-2 h-2 rounded-full bg-on-surface"></div>
-              <div className="w-2 h-2 rounded-full bg-on-surface"></div>
-              <div className="w-2 h-2 rounded-full bg-on-surface"></div>
-              <span className="ml-4 text-[10px] uppercase tracking-widest font-mono text-on-surface-variant">zentro-core-v1.0.4 // input_stream</span>
-            </div>
-            
-            <textarea 
-              className="w-full h-full flex-grow bg-transparent border-none outline-none focus:ring-0 text-xl md:text-2xl font-mono text-on-surface placeholder:text-surface-container-high resize-none terminal-scroll leading-relaxed" 
-              placeholder="I want to build a fitness app for busy professionals"
-              value={idea}
-              onChange={(e) => setIdea(e.target.value)}
-            ></textarea>
-            
-            {/* Error message */}
-            {error && (
-              <div className="text-error text-xs font-mono mt-2 opacity-80">{error}</div>
-            )}
-
-            <div className="mt-8 pt-8 border-t border-surface-container flex flex-wrap items-center justify-between gap-6">
-              <div className="flex flex-wrap gap-3">
-                {['SaaS tool', 'Mobile app', 'AI tool', 'Marketplace'].map((tag) => (
-                  <button 
-                    key={tag} 
-                    onClick={() => handleTagClick(tag)}
-                    className={`px-4 py-1.5 rounded-sm text-[0.6875rem] uppercase tracking-widest font-bold transition-all border active:scale-95 ${
-                      activeTag === tag 
-                        ? 'bg-primary-container text-white border-primary-container' 
-                        : 'bg-surface-container-high hover:bg-surface-bright text-on-surface-variant hover:text-white border-transparent'
-                    }`}
-                  >
-                    {tag}
-                  </button>
-                ))}
+        {/* Input Interface */}
+        <div className="flex-1 flex flex-col justify-between">
+          <div className="relative group mb-8">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-primary-container to-surface-bright rounded-xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
+            <div className="relative bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-8 shadow-2xl">
+              <textarea
+                value={idea}
+                onChange={(e) => setIdea(e.target.value)}
+                rows={4}
+                className="w-full bg-transparent border-0 focus:ring-0 text-white placeholder-on-surface-variant/40 font-mono text-lg md:text-xl resize-none outline-none leading-relaxed"
+                placeholder="Example: An AI platform that analyzes local zoning laws to help small developers find compliant multi-family lots..."
+              />
+              <div className="flex justify-between items-center pt-4 border-t border-outline-variant/10 mt-4">
+                <div className="flex items-center gap-2 text-xs font-mono text-outline">
+                  <span className="inline-block w-2 h-2 rounded-full bg-primary-container animate-pulse"></span>
+                  <span>SYSTEM_READY</span>
+                </div>
+                <span className="text-xs font-mono text-outline-variant">{idea.length} chars</span>
               </div>
-              <button 
-                onClick={handleGenerate}
-                disabled={loading}
-                className="bg-primary-container text-white px-8 py-4 rounded-lg font-bold text-sm tracking-tight flex items-center gap-3 transition-all duration-300 hover:shadow-[0_0_20px_rgba(0,51,255,0.4)] hover:-translate-y-0.5 active:scale-95 group disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                {loading ? 'Generating...' : 'Generate roadmap'}
-                <span className={`material-symbols-outlined text-lg transition-transform group-hover:translate-x-1 ${loading ? 'animate-spin' : ''}`}>
-                  {loading ? 'progress_activity' : 'arrow_forward'}
-                </span>
-              </button>
             </div>
           </div>
-        </div>
 
-        {/* Context Info */}
-        <div className="mt-12 flex items-center gap-8 text-on-surface-variant/40">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-sm">lock</span>
-            <span className="text-[0.6875rem] uppercase tracking-widest font-bold">Encrypted processing</span>
+          {/* Preset Buttons */}
+          <div className="space-y-6 mb-12">
+            <span className="text-[0.6875rem] uppercase tracking-widest font-bold text-on-surface-variant block">SELECT SECTOR TAG</span>
+            <div className="flex flex-wrap gap-3">
+              {['Fintech MVP', 'B2B SaaS', 'Consumer AI', 'Developer Tool', 'Hardware + App', 'Local Marketplace'].map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => handleTagClick(tag)}
+                  className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all border ${
+                    activeTag === tag
+                      ? 'bg-primary-container text-white border-primary-container shadow-[0_0_15px_rgba(0,51,255,0.4)]'
+                      : 'bg-surface-container-low text-on-surface border-outline-variant/20 hover:border-primary-container/50 hover:bg-surface-container-high'
+                  }`}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-sm">bolt</span>
-            <span className="text-[0.6875rem] uppercase tracking-widest font-bold">Real-time analysis</span>
+
+          {error && (
+            <div className="mb-6 p-4 bg-error-container/20 border border-error-container/40 rounded-lg text-error text-xs font-mono">
+              {error}
+            </div>
+          )}
+
+          {/* Action Trigger */}
+          <div className="pt-4">
+            <button
+              type="button"
+              onClick={handleGenerate}
+              disabled={loading}
+              className="w-full md:w-auto px-12 py-5 bg-primary-container hover:bg-on-primary-fixed-variant text-white font-black uppercase tracking-widest text-sm rounded-lg shadow-[0_0_25px_rgba(0,51,255,0.4)] hover:shadow-[0_0_35px_rgba(0,51,255,0.6)] transition-all duration-300 active:scale-95 flex items-center justify-center gap-3 disabled:opacity-60 disabled:cursor-not-allowed group"
+            >
+              {loading ? (
+                <>
+                  <span className="material-symbols-outlined animate-spin text-xl">progress_activity</span>
+                  <span>Synthesizing Architecture...</span>
+                </>
+              ) : (
+                <>
+                  <span>Generate 14-Day Blueprint</span>
+                  <span className="material-symbols-outlined text-xl group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
       </section>
 
-      {/* Side Panel (Right) */}
-      <aside className="md:col-span-4 mt-24 md:mt-0">
-        <div className="bg-surface-container-low p-10 h-full flex flex-col gap-12 border-l border-surface-container-high/30">
+      {/* Right Column: Architectural Parameters Sidebar */}
+      <aside className="md:col-span-4 flex flex-col justify-between border-l border-outline-variant/10 md:pl-12 pt-8 md:pt-0">
+        <div className="space-y-12">
           <div>
-            <h2 className="text-[0.6875rem] font-black uppercase tracking-[0.25em] text-on-surface mb-10">How it works</h2>
-            <div className="space-y-12">
-              {/* Step 1 */}
-              <div className="flex gap-6 items-start group">
-                <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-surface-container-highest border border-outline-variant/20 group-hover:border-primary-container transition-colors duration-500">
-                  <span className="text-xs font-mono font-bold text-primary-container">01</span>
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-on-surface mb-2">We analyze your idea</h3>
-                  <p className="text-on-surface-variant text-sm leading-relaxed font-light">
-                    Our semantic engine breaks down your description into core functional modules and market categories.
-                  </p>
-                </div>
+            <h3 className="text-xs uppercase tracking-widest font-bold text-white mb-6">Engine Specifications</h3>
+            <div className="space-y-6">
+              <div className="p-4 bg-surface-container-low rounded-lg border border-outline-variant/10">
+                <span className="text-[0.6875rem] uppercase tracking-wider text-outline block mb-1">Time Horizon</span>
+                <span className="text-sm font-bold text-white uppercase">14-Day Accelerated Sprint</span>
               </div>
-              
-              {/* Step 2 */}
-              <div className="flex gap-6 items-start group">
-                <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-surface-container-highest border border-outline-variant/20 group-hover:border-primary-container transition-colors duration-500">
-                  <span className="text-xs font-mono font-bold text-primary-container">02</span>
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-on-surface mb-2">Identify target users</h3>
-                  <p className="text-on-surface-variant text-sm leading-relaxed font-light">
-                    Mapping demographic data against competitive landscapes to define your ideal user personas.
-                  </p>
-                </div>
+              <div className="p-4 bg-surface-container-low rounded-lg border border-outline-variant/10">
+                <span className="text-[0.6875rem] uppercase tracking-wider text-outline block mb-1">Architecture Standard</span>
+                <span className="text-sm font-bold text-white uppercase">Electric Monolith System</span>
               </div>
-              
-              {/* Step 3 */}
-              <div className="flex gap-6 items-start group">
-                <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-surface-container-highest border border-outline-variant/20 group-hover:border-primary-container transition-colors duration-500">
-                  <span className="text-xs font-mono font-bold text-primary-container">03</span>
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-on-surface mb-2">Create MVP plan</h3>
-                  <p className="text-on-surface-variant text-sm leading-relaxed font-light">
-                    Generating a technical roadmap with prioritized features, tech stack, and milestone projections.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Footer Visual */}
-          <div className="mt-auto pt-10">
-            <div className="bg-surface-container-lowest p-6 rounded border border-outline-variant/10">
-              <div className="flex justify-between items-center mb-4">
-                <span className="text-[0.625rem] font-bold uppercase tracking-widest text-on-surface-variant">System Status</span>
-                <span className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]"></span>
-              </div>
-              <div className="space-y-1">
-                <div className="h-1 w-full bg-surface-container rounded-full overflow-hidden">
-                  <div className="h-full bg-primary-container w-[88%]"></div>
-                </div>
-                <span className="text-[10px] font-mono text-on-surface-variant/50">NODE_CAPACITY: 88.2%</span>
+              <div className="p-4 bg-surface-container-low rounded-lg border border-outline-variant/10">
+                <span className="text-[0.6875rem] uppercase tracking-wider text-outline block mb-1">Output Structure</span>
+                <span className="text-sm font-bold text-white uppercase">Target, Tech, Risks &amp; Schedule</span>
               </div>
             </div>
           </div>

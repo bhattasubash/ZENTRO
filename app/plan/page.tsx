@@ -3,11 +3,12 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { getRoadmap, saveRoadmap, type SavedProject } from '@/lib/api';
+import { getRoadmap, generateRoadmap, type SavedProject } from '@/lib/api';
 
 interface DailyChecklistItem {
   day: number;
   task: string;
+  locked?: boolean;
 }
 
 interface PlanData {
@@ -26,6 +27,7 @@ interface PlanData {
     goal?: string;
     daily_checklist?: DailyChecklistItem[];
   };
+  is_gated?: boolean;
   [key: string]: any;
 }
 
@@ -89,22 +91,13 @@ function PlanContent() {
   const handleRegenerate = async () => {
     setRegenerating(true);
     try {
-      const res = await fetch('https://zentroapi.iamsubash2064.workers.dev/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idea }),
-      });
-
-      if (!res.ok) throw new Error('Failed');
-
-      const result = await res.json();
-      const saved = await saveRoadmap(idea, result.data, projectId || undefined);
+      const result = await generateRoadmap(idea);
       setData(result.data);
-      if (saved.projectId) {
-        setProjectId(saved.projectId);
+      if (result.projectId) {
+        setProjectId(result.projectId);
       }
     } catch {
-      // silently fail, user can retry
+      // user can retry
     } finally {
       setRegenerating(false);
     }
@@ -149,20 +142,18 @@ function PlanContent() {
 
   const handleShare = async () => {
     if (!projectId) {
-      // If no projectId, save first
-      const saved = await saveRoadmap(idea, data!);
-      setProjectId(saved.projectId);
+      alert('Please save or generate a plan before sharing.');
+      return;
     }
 
     setSharing(true);
     setShowShareModal(true);
 
     try {
-      const targetId = projectId || (await saveRoadmap(idea, data!)).projectId;
       const res = await fetch('/api/share', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectId: targetId }),
+        body: JSON.stringify({ projectId }),
       });
 
       const resData = await res.json();
@@ -215,6 +206,7 @@ function PlanContent() {
   }
 
   const checklist = data.execution_plan?.daily_checklist || [];
+  const hasLockedItems = checklist.some((item) => item.locked);
 
   return (
     <main className="max-w-7xl mx-auto px-8 py-20 min-h-[calc(100vh-144px)]">
@@ -385,6 +377,12 @@ function PlanContent() {
                 </div>
               </li>
             ))}
+            {hasLockedItems && (
+              <li className="flex items-center gap-3 pt-2 text-xs font-mono text-outline">
+                <span className="material-symbols-outlined text-sm text-primary-container">lock</span>
+                <span>+ Additional features unlocked in PRO</span>
+              </li>
+            )}
           </ul>
         </div>
 
@@ -508,21 +506,57 @@ function PlanContent() {
               </span>
             </div>
           </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0 border border-outline-variant/10">
             {checklist.map((item: any, i: number) => (
               <div
                 key={item.day}
                 className={`p-6 ${
                   i < checklist.length - 1 ? 'border-b md:border-r' : ''
-                } border-outline-variant/10 hover:bg-surface-container-high transition-colors`}
+                } border-outline-variant/10 transition-colors ${
+                  item.locked
+                    ? 'bg-surface-container-low/40 relative overflow-hidden'
+                    : 'hover:bg-surface-container-high'
+                }`}
               >
-                <h4 className="text-primary font-bold tracking-widest text-xs uppercase mb-2">
-                  Day {item.day}
-                </h4>
-                <p className="text-on-surface text-sm leading-relaxed">{item.task}</p>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-primary font-bold tracking-widest text-xs uppercase">
+                    Day {item.day}
+                  </h4>
+                  {item.locked && (
+                    <span className="px-2 py-0.5 bg-primary-container/20 border border-primary-container/40 text-primary-container text-[9px] font-bold uppercase tracking-wider rounded flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[11px]">lock</span>
+                      PRO
+                    </span>
+                  )}
+                </div>
+                <p className={`text-sm leading-relaxed ${item.locked ? 'text-outline select-none' : 'text-on-surface'}`}>
+                  {item.task}
+                </p>
               </div>
             ))}
           </div>
+
+          {/* Locked Gating Callout */}
+          {hasLockedItems && (
+            <div className="mt-8 p-8 bg-gradient-to-r from-primary-container/10 via-surface-container-high to-primary-container/5 border border-primary-container/30 rounded-xl flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-lg bg-primary-container/20 border border-primary-container/40 flex items-center justify-center text-primary-container shrink-0">
+                  <span className="material-symbols-outlined text-2xl">lock_open</span>
+                </div>
+                <div>
+                  <h4 className="text-base font-bold text-white uppercase tracking-tight">Unlock Days 4–14 with Zentro PRO</h4>
+                  <p className="text-xs text-on-surface-variant mt-1">Get full step-by-step daily deliverables, validation tactics, and PDF export capabilities.</p>
+                </div>
+              </div>
+              <Link
+                href="/pricing"
+                className="bg-primary-container text-white px-8 py-3.5 rounded-lg text-xs font-black uppercase tracking-wider hover:shadow-[0_0_20px_rgba(0,51,255,0.4)] transition-all shrink-0 active:scale-95"
+              >
+                Upgrade to PRO ($49/mo)
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 

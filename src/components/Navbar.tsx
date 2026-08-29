@@ -1,25 +1,29 @@
 "use client";
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useMemo } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
 
 export default function Navbar() {
   const [user, setUser] = useState<User | null>(null);
+  const [authInitialized, setAuthInitialized] = useState(false);
   const router = useRouter();
-  const supabase = createClient();
+  const pathname = usePathname();
+  const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user);
+      setAuthInitialized(true);
     });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      setAuthInitialized(true);
     });
 
     return () => {
@@ -27,8 +31,15 @@ export default function Navbar() {
     };
   }, [supabase]);
 
+  // Hide the global Navbar on dashboard and settings where a full-height sidebar and topbar exist
+  const isDashboardLayout = pathname?.startsWith('/dashboard') || pathname?.startsWith('/settings');
+  if (isDashboardLayout) {
+    return null;
+  }
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    setUser(null);
     router.push('/');
     router.refresh();
   };
@@ -36,6 +47,7 @@ export default function Navbar() {
   return (
     <nav className="fixed top-0 w-full z-50 bg-[#131313]/80 backdrop-blur-xl border-b border-outline-variant/10">
       <div className="flex justify-between items-center h-16 px-8 max-w-[1440px] mx-auto">
+        {/* Brand Logo */}
         <div className="flex items-center">
           <Link href="/">
             <img
@@ -45,19 +57,22 @@ export default function Navbar() {
             />
           </Link>
         </div>
-        <div className="hidden md:flex gap-8 items-center">
+
+        {/* Center Nav Links */}
+        <div className="flex gap-8 items-center">
           <Link
             className="font-['Inter'] tracking-tighter font-medium text-sm text-[#C4C5DA] hover:text-white transition-colors duration-300"
             href="/pricing"
           >
             Pricing
           </Link>
-          {user ? (
+
+          {authInitialized && user ? (
             <Link
               className="font-['Inter'] tracking-tighter font-medium text-sm text-[#C4C5DA] hover:text-white transition-colors duration-300"
-              href="/dashboard"
+              href="/input"
             >
-              Dashboard
+              New Plan
             </Link>
           ) : (
             <Link
@@ -68,8 +83,10 @@ export default function Navbar() {
             </Link>
           )}
         </div>
+
+        {/* Right Action / CTA */}
         <div className="flex items-center gap-4">
-          {user ? (
+          {authInitialized && user ? (
             <>
               <Link
                 href="/dashboard"

@@ -1,32 +1,55 @@
 // ===================================================
-// Cloudflare Worker — Gemini API Version
+// Cloudflare Worker — Gemini API Version with Shared Secret
 // ===================================================
 // DEPLOY THIS in your Cloudflare Worker dashboard.
 //
 // SETUP:
-// 1. Go to Worker Settings → Variables
-// 2. Add a Secret: GEMINI_API_KEY = your Google AI API key
+// 1. Go to Worker Settings → Variables & Secrets
+// 2. Add Secrets:
+//    - GEMINI_API_KEY = your Google AI API key
+//    - ZENTRO_WORKER_SECRET = shared secret between Next.js server and Worker
 // 3. Deploy this code
 // ===================================================
 
 export default {
   async fetch(request, env) {
-
     const corsHeaders = {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type"
+      "Access-Control-Allow-Headers": "Content-Type, X-Zentro-Secret"
     };
 
     if (request.method === "OPTIONS") {
       return new Response(null, { headers: corsHeaders });
     }
 
+    // Shared secret authorization check (if secret is configured in worker environment)
+    if (env.ZENTRO_WORKER_SECRET) {
+      const incomingSecret = request.headers.get("X-Zentro-Secret");
+      if (incomingSecret !== env.ZENTRO_WORKER_SECRET) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: "Unauthorized: Invalid or missing worker secret"
+        }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+    }
+
     try {
-
       if (request.method === "POST" && request.url.includes("/generate")) {
-
         const { idea } = await request.json();
+
+        if (!idea || typeof idea !== "string" || !idea.trim()) {
+          return new Response(JSON.stringify({
+            success: false,
+            error: "Please provide a valid idea description."
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          });
+        }
 
         const prompt = `
 You are an elite startup strategist, product manager, and YC-level founder.
@@ -107,7 +130,7 @@ IMPORTANT RULES:
 
         // Gemini API call
         const aiResponse = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${env.GEMINI_API_KEY}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API_KEY}`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -127,7 +150,6 @@ IMPORTANT RULES:
 
         const data = await aiResponse.json();
 
-        // If Gemini returned an error
         if (data.error) {
           return new Response(JSON.stringify({
             success: false,
@@ -155,7 +177,6 @@ IMPORTANT RULES:
             });
           }
 
-          // Clean any markdown formatting Gemini might add
           const cleaned = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
           parsed = JSON.parse(cleaned);
         } catch (parseErr) {
@@ -187,7 +208,6 @@ IMPORTANT RULES:
       });
 
     } catch (err) {
-
       return new Response(JSON.stringify({
         success: false,
         error: err.message

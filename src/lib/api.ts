@@ -25,8 +25,10 @@ export interface RoadmapData {
     daily_checklist?: {
       day: number;
       task: string;
+      locked?: boolean;
     }[];
   };
+  is_gated?: boolean;
   [key: string]: any;
 }
 
@@ -37,16 +39,17 @@ export interface SavedProject {
   createdAt: string;
   isShared?: boolean;
   shareToken?: string | null;
+  isPro?: boolean;
 }
 
 const LOCAL_STORAGE_KEY = 'zentro_projects';
 
-// ─── API Generation ──────────────────────────────────────────────────
+// ─── API Generation & Retrieval (Routed through Server) ──────────────
 
 export async function generateRoadmap(
   idea: string
-): Promise<{ projectId: string; data: RoadmapData }> {
-  const res = await fetch('https://zentroapi.iamsubash2064.workers.dev/generate', {
+): Promise<{ projectId: string; idea: string; data: RoadmapData; isPro?: boolean }> {
+  const res = await fetch('/api/generate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ idea }),
@@ -54,69 +57,46 @@ export async function generateRoadmap(
 
   const result = await res.json();
   if (!res.ok || !result.success) {
-    throw new Error(result.error || result.message || `Server error: ${res.status}`);
+    throw new Error(result.error || 'Failed to generate roadmap');
   }
 
-  const saved = await saveRoadmap(idea, result.data);
-  return { projectId: saved.projectId, data: result.data };
-}
-
-// ─── Supabase / LocalStorage Hybrid CRUD ─────────────────────────────
-
-export async function saveRoadmap(
-  idea: string,
-  data: RoadmapData,
-  existingProjectId?: string
-): Promise<SavedProject> {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const projectId = existingProjectId || crypto.randomUUID();
-  const createdAt = new Date().toISOString();
-
-  const project: SavedProject = {
-    projectId,
-    idea,
-    data,
-    createdAt,
-  };
-
-  if (user) {
-    // Save to Supabase
-    const { data: inserted, error } = await supabase
-      .from('roadmaps')
-      .insert({
-        id: projectId,
-        user_id: user.id,
-        idea,
-        data,
-      })
-      .select()
-      .single();
-
-    if (!error && inserted) {
-      project.projectId = inserted.id;
-      project.createdAt = inserted.created_at;
-    }
-  }
-
-  // Always keep localStorage updated as fallback cache
+  // Cache locally
   if (typeof window !== 'undefined') {
     try {
-      const local = getLocalRoadmaps();
-      const filtered = local.filter((p) => p.projectId !== project.projectId);
-      filtered.unshift(project);
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(filtered));
-      localStorage.setItem('zentro_plan', JSON.stringify(data));
+      localStorage.setItem('zentro_plan', JSON.stringify(result.data));
       localStorage.setItem('zentro_plan_idea', idea);
+
+      const local = getLocalRoadmaps();
+      const filtered = local.filter((p) => p.projectId !== result.projectId);
+      filtered.unshift({
+        projectId: result.projectId,
+        idea,
+        data: result.data,
+        createdAt: new Date().toISOString(),
+        isPro: result.isPro,
+      });
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(filtered));
     } catch {
-      // ignore localStorage errors
+      // ignore
     }
   }
 
-  return project;
+  return { projectId: result.projectId, idea, data: result.data, isPro: result.isPro };
+}
+
+export async function getRoadmap(projectId: string): Promise<SavedProject | null> {
+  try {
+    const res = await fetch(`/api/roadmap/${projectId}`);
+    if (res.ok) {
+      const data = await res.json();
+      return data;
+    }
+  } catch {
+    // network fallback to localStorage
+  }
+
+  const local = getLocalRoadmaps();
+  return local.find((p) => p.projectId === projectId) ?? null;
 }
 
 export async function getAllRoadmaps(): Promise<SavedProject[]> {
@@ -142,7 +122,6 @@ export async function getAllRoadmaps(): Promise<SavedProject[]> {
         shareToken: row.share_token,
       }));
 
-      // Cache locally
       if (typeof window !== 'undefined') {
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(projects));
       }
@@ -151,37 +130,61 @@ export async function getAllRoadmaps(): Promise<SavedProject[]> {
     }
   }
 
-  // Fallback to localStorage
   return getLocalRoadmaps();
 }
 
-export async function getRoadmap(projectId: string): Promise<SavedProject | null> {
+export async function saveRoadmap(
+  idea: string,
+  data: RoadmapData,
+  existingProjectId?: string
+): Promise<SavedProject> {
   const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const projectId = existingProjectId || crypto.randomUUID();
+  const createdAt = new Date().toISOString();
+
+  const project: SavedProject = {
+    projectId,
+    idea,
+    data,
+    createdAt,
+  };
+
   if (user) {
-    const { data, error } = await supabase
+    const { data: inserted, error } = await supabase
       .from('roadmaps')
-      .select('*')
-      .eq('id', projectId)
+      .insert({
+        id: projectId,
+        user_id: user.id,
+        idea,
+        data,
+      })
+      .select()
       .single();
 
-    if (!error && data) {
-      return {
-        projectId: data.id,
-        idea: data.idea,
-        data: data.data,
-        createdAt: data.created_at,
-        isShared: data.is_shared,
-        shareToken: data.share_token,
-      };
+    if (!error && inserted) {
+      project.projectId = inserted.id;
+      project.createdAt = inserted.created_at;
     }
   }
 
-  const local = getLocalRoadmaps();
-  return local.find((p) => p.projectId === projectId) ?? null;
+  if (typeof window !== 'undefined') {
+    try {
+      const local = getLocalRoadmaps();
+      const filtered = local.filter((p) => p.projectId !== project.projectId);
+      filtered.unshift(project);
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(filtered));
+      localStorage.setItem('zentro_plan', JSON.stringify(data));
+      localStorage.setItem('zentro_plan_idea', idea);
+    } catch {
+      // ignore
+    }
+  }
+
+  return project;
 }
 
 export async function deleteRoadmap(projectId: string): Promise<boolean> {
