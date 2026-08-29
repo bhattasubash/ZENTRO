@@ -1,5 +1,3 @@
-import { createClient } from '@/lib/supabase/client';
-
 // ─── Types ──────────────────────────────────────────────────────────
 
 export interface RoadmapStep {
@@ -44,7 +42,7 @@ export interface SavedProject {
 
 const LOCAL_STORAGE_KEY = 'zentro_projects';
 
-// ─── API Generation & Retrieval (Routed through Server) ──────────────
+// ─── API Generation & Retrieval (Routed 100% through Server) ────────
 
 export async function generateRoadmap(
   idea: string
@@ -100,101 +98,35 @@ export async function getRoadmap(projectId: string): Promise<SavedProject | null
 }
 
 export async function getAllRoadmaps(): Promise<SavedProject[]> {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (user) {
-    const { data, error } = await supabase
-      .from('roadmaps')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-
-    if (!error && data) {
-      const projects: SavedProject[] = data.map((row) => ({
-        projectId: row.id,
-        idea: row.idea,
-        data: row.data,
-        createdAt: row.created_at,
-        isShared: row.is_shared,
-        shareToken: row.share_token,
-      }));
-
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(projects));
+  try {
+    const res = await fetch('/api/roadmaps');
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.roadmaps)) {
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data.roadmaps));
+          } catch {
+            // ignore
+          }
+        }
+        return data.roadmaps;
       }
-
-      return projects;
     }
+  } catch {
+    // network fallback
   }
 
   return getLocalRoadmaps();
 }
 
-export async function saveRoadmap(
-  idea: string,
-  data: RoadmapData,
-  existingProjectId?: string
-): Promise<SavedProject> {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const projectId = existingProjectId || crypto.randomUUID();
-  const createdAt = new Date().toISOString();
-
-  const project: SavedProject = {
-    projectId,
-    idea,
-    data,
-    createdAt,
-  };
-
-  if (user) {
-    const { data: inserted, error } = await supabase
-      .from('roadmaps')
-      .insert({
-        id: projectId,
-        user_id: user.id,
-        idea,
-        data,
-      })
-      .select()
-      .single();
-
-    if (!error && inserted) {
-      project.projectId = inserted.id;
-      project.createdAt = inserted.created_at;
-    }
-  }
-
-  if (typeof window !== 'undefined') {
-    try {
-      const local = getLocalRoadmaps();
-      const filtered = local.filter((p) => p.projectId !== project.projectId);
-      filtered.unshift(project);
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(filtered));
-      localStorage.setItem('zentro_plan', JSON.stringify(data));
-      localStorage.setItem('zentro_plan_idea', idea);
-    } catch {
-      // ignore
-    }
-  }
-
-  return project;
-}
-
 export async function deleteRoadmap(projectId: string): Promise<boolean> {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (user) {
-    await supabase.from('roadmaps').delete().eq('id', projectId);
+  try {
+    await fetch(`/api/roadmap/${projectId}`, {
+      method: 'DELETE',
+    });
+  } catch {
+    // ignore
   }
 
   if (typeof window !== 'undefined') {
@@ -215,7 +147,14 @@ export async function duplicateRoadmap(projectId: string): Promise<SavedProject 
   if (!original) return null;
 
   const duplicatedIdea = `${original.idea} (Copy)`;
-  return await saveRoadmap(duplicatedIdea, original.data);
+  const result = await generateRoadmap(duplicatedIdea);
+  return {
+    projectId: result.projectId,
+    idea: result.idea,
+    data: result.data,
+    createdAt: new Date().toISOString(),
+    isPro: result.isPro,
+  };
 }
 
 // ─── LocalStorage Helpers ───────────────────────────────────────────

@@ -28,7 +28,6 @@ export async function GET(request: Request, context: RouteContext) {
 
     // If shared, check if public viewing is allowed
     if (roadmap.is_shared && roadmap.share_token) {
-      // Shared roadmaps are public read-only (unredacted or redacted based on owner's plan)
       return NextResponse.json({
         projectId: roadmap.id,
         idea: roadmap.idea,
@@ -65,6 +64,31 @@ export async function GET(request: Request, context: RouteContext) {
     console.error('API /roadmap/[id] error:', err);
     return NextResponse.json(
       { error: err.message || 'Failed to fetch roadmap' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: Request, context: RouteContext) {
+  try {
+    const { id } = await context.params;
+
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    await supabase.from('roadmaps').delete().eq('id', id).eq('user_id', user.id);
+
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    console.error('API /roadmap/[id] DELETE error:', err);
+    return NextResponse.json(
+      { error: err.message || 'Failed to delete roadmap' },
       { status: 500 }
     );
   }
